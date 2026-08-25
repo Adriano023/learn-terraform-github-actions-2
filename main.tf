@@ -7,35 +7,25 @@ terraform {
       source  = "hashicorp/aws"
       version = "4.52.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "3.4.3"
-    }
   }
   required_version = ">= 1.1.0"
 
   cloud {
-    organization = "REPLACE_ME" # Ricordati di rimettere la tua organizzazione qui
+    organization = "REPLACE_ME" # <-- INSERISCI QUI SOLO IL NOME DELLA TUA ORGANIZZAZIONE
 
     workspaces {
-      name = "gh-actions-demo" # Assicurati che corrisponda al tuo workspace su HCP Terraform
+      name = "gh-actions-demo" 
     }
   }
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "eu-north-1" # <-- REGIONE DI STOCCOLMA
 }
 
-resource "random_pet" "sg" {}
-
-# IL BLOCCO DATA E' STATO RIMOSSO PER AGGIRARE IL BLOCCO DELLA POLICY SCP SU AWS
-
 resource "aws_instance" "web" {
-  # Sostituisci questo valore con un AMI ID di Ubuntu valido per la tua regione 
-  ami                    = "ami-0aba19e56f3eaec05"
-  instance_type          = "t3.micro"
-  vpc_security_group_ids = [aws_security_group.web-sg.id]
+  ami           = "ami-0aba19e56f3eaec05" # <-- AMI DI STOCCOLMA
+  instance_type = "t3.micro" 
 
   user_data = <<-EOF
               #!/bin/bash
@@ -45,23 +35,6 @@ resource "aws_instance" "web" {
               echo "Hello World" > /var/www/html/index.html
               systemctl restart apache2
               EOF
-}
-
-resource "aws_security_group" "web-sg" {
-  name = "${random_pet.sg.id}-sg"
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  // connectivity to ubuntu mirrors is required to run `apt-get update` and `apt-get install apache2`
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
 output "web-address" {
