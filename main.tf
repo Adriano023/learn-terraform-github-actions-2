@@ -11,7 +11,7 @@ terraform {
   required_version = ">= 1.1.0"
 
   cloud {
-    organization = "REPLACE_ME" # <-- INSERISCI QUI SOLO IL NOME DELLA TUA ORGANIZZAZIONE
+    organization = "test_02332" # <-- INSERISCI QUI SOLO IL NOME DELLA TUA ORGANIZZAZIONE
 
     workspaces {
       name = "gh-actions-demo" 
