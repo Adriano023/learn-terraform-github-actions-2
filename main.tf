@@ -15,10 +15,10 @@ terraform {
   required_version = ">= 1.1.0"
 
   cloud {
-    organization = "REPLACE_ME"
+    organization = "REPLACE_ME" # Ricordati di rimettere la tua organizzazione qui
 
     workspaces {
-      name = "gh-actions-demo"
+      name = "gh-actions-demo" # Assicurati che corrisponda al tuo workspace su HCP Terraform
     }
   }
 }
@@ -29,24 +29,11 @@ provider "aws" {
 
 resource "random_pet" "sg" {}
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
-}
+# IL BLOCCO DATA E' STATO RIMOSSO PER AGGIRARE IL BLOCCO DELLA POLICY SCP SU AWS
 
 resource "aws_instance" "web" {
-  ami                    = data.aws_ami.ubuntu.id
+  # Sostituisci questo valore con un AMI ID di Ubuntu valido per la tua regione (us-west-2)
+  ami                    = "ami-0efcece6bed30fd98"
   instance_type          = "t2.micro"
   vpc_security_group_ids = [aws_security_group.web-sg.id]
 
