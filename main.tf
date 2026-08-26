@@ -27,7 +27,7 @@ resource "aws_instance" "web" {
   ami           = "ami-0aba19e56f3eaec05"
   instance_type = "t3.micro" 
 
-  #rende l'infrastruttura immutabile
+  #rende l'infrastruttura immutabile -
   user_data_replace_on_change = true
 
   # Il blocco user_data ora automatizza l'installazione di Docker
