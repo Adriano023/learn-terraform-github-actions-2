@@ -25,27 +25,30 @@ provider "aws" {
 
 resource "aws_instance" "web" {
   ami           = "ami-0aba19e56f3eaec05"
-  instance_type = "t3.micro" 
+  
+  # Istanza piu potente (8GB RAM) dal nuovo piano gratuito per reggere il modello
+  instance_type = "m7i-flex.large" 
 
-  # rende l'infrastruttura immutabile
+  # Rende l'infrastruttura immutabile
   user_data_replace_on_change = true
 
-  # Il blocco user_data ora automatizza l'installazione di Docker e del modello ML
+  # Allarghiamo il disco a 30 GB (inclusi nel piano gratuito) per l'immagine da 11.3 GB
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp3"
+  }
+
   user_data = <<-EOF
               #!/bin/bash
-              # 1. Aggiorna i repository di sistema
+              # 1. Aggiorna i repository e installa Docker
               apt-get update
-              
-              # 2. Installa il motore Docker
               apt-get install -y docker.io
-              
-              # 3. Abilita e avvia il demone Docker
               systemctl enable docker
               systemctl start docker
               
-              # 4. Scarica e avvia il container del microservizio di Machine Learning
-              # Mappiamo la porta 8080 di AWS sulla porta 5000 del container Python
-              docker run -d -p 8080:5000 --name ml-app vaishnavi8754/24mcr121-ml:latest
+              # 2. Scarica e avvia il container di Machine Learning per la frutta
+              # Usa esattamente il tag v0.5.1 come visto su Docker Hub
+              docker run -d -p 8080:80 --name fruit-quality-ml emanueloverflow/fruits-quality:v0.5.1
               EOF
 }
 
