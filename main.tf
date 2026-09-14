@@ -46,9 +46,8 @@ resource "aws_instance" "web" {
               systemctl enable docker
               systemctl start docker
               
-              # 2. Scarica e avvia il container di Machine Learning per la frutta
-              # Usa esattamente il tag v0.5.1 come visto su Docker Hub
-              docker run -d -p 8080:80 --name fruit-quality-ml emanueloverflow/fruits-quality:v0.5.1
+
+              docker run -d -p 8080:5000 quay.io/codait/max-object-detector
               EOF
 }
 
