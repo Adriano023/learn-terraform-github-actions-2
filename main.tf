@@ -26,13 +26,13 @@ provider "aws" {
 resource "aws_instance" "web" {
   ami           = "ami-0aba19e56f3eaec05"
   
-  # Istanza piu potente (8GB RAM) dal nuovo piano gratuito per reggere il modello
+  # aggiornamento istazna da 8 gb per ML
   instance_type = "m7i-flex.large" 
 
   # Rende l'infrastruttura immutabile
   user_data_replace_on_change = true
 
-  # Allarghiamo il disco a 30 GB (inclusi nel piano gratuito) per l'immagine da 11.3 GB
+  # Allarghiamo il disco a 30 GB in caso di eventuale aggiunta di modello piu pesante
   root_block_device {
     volume_size = 30
     volume_type = "gp3"
@@ -46,8 +46,8 @@ resource "aws_instance" "web" {
               systemctl enable docker
               systemctl start docker
               
-
-              docker run -d -p 8080:5000 quay.io/codait/max-object-detector
+              #restart always serve per riavviare il container ad ogni accensione dell istanza
+              docker run -d --restart always -p 8080:5000 quay.io/codait/max-object-detector
               EOF
 }
 
