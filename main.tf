@@ -40,14 +40,38 @@ resource "aws_instance" "web" {
 
   user_data = <<-EOF
               #!/bin/bash
-              # 1. Aggiorna i repository e installa Docker
               apt-get update
               apt-get install -y docker.io
               systemctl enable docker
               systemctl start docker
-              
-              #restart always serve per riavviare il container ad ogni accensione dell istanza
-              docker run -d --restart always -p 8080:5000 quay.io/codait/max-object-detector
+
+              # 1. Creiamo una rete interna per far parlare i container tra loro
+              docker network create monitoring-net
+
+              # 2. Avviamo cAdvisor per estrarre le metriche hardware da Docker
+              docker run -d --name=cadvisor --net=monitoring-net -p 8081:8080 \
+                -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro \
+                --restart always gcr.io/cadvisor/cadvisor:latest
+
+              # 3. Creiamo la configurazione per Prometheus
+              mkdir -p /etc/prometheus
+              cat << 'PROM_EOF' > /etc/prometheus/prometheus.yml
+              global:
+                scrape_interval: 5s
+              scrape_configs:
+                - job_name: 'cadvisor'
+                  static_configs:
+                    - targets: ['cadvisor:8080']
+              PROM_EOF
+
+              # 4. Avviamo Prometheus per raccogliere i dati
+              docker run -d --name=prometheus --net=monitoring-net -p 9090:9090 \
+                -v /etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml \
+                --restart always prom/prometheus:latest
+
+              # 5. Avviamo il nostro modello di Machine Learning
+              docker run -d --name=max-object-detector -p 8080:5000 \
+                --restart always quay.io/codait/max-object-detector
               EOF
 }
 
