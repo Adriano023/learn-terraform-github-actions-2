@@ -40,38 +40,52 @@ resource "aws_instance" "web" {
 
   user_data = <<-EOF
               #!/bin/bash
-              apt-get update
-              apt-get install -y docker.io
-              systemctl enable docker
-              systemctl start docker
+              
+              # 1. Installiamo K3s (la versione leggera di Kubernetes)
+              # Questo comando scarica K3s, lo installa, avvia il servizio e configura kubectl
+              curl -sfL https://get.k3s.io | sh -
 
-              # 1. Creiamo una rete interna per far parlare i container tra loro
-              docker network create monitoring-net
+              # 2. Aspettiamo qualche secondo che il nodo Kubernetes sia pronto
+              sleep 15
 
-              # 2. Avviamo cAdvisor per estrarre le metriche hardware da Docker
-              docker run -d --name=cadvisor --net=monitoring-net -p 8081:8080 \
-                -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro \
-                --restart always gcr.io/cadvisor/cadvisor:latest
+              # 3. Creiamo il file Manifest di Kubernetes per il nostro modello ML
+              # Definiamo un "Deployment" (il container) e un "Service" (l'esposizione della porta)
+              cat << 'K8S_EOF' > /tmp/max-object-detector.yaml
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: max-object-detector
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: object-detector
+                template:
+                  metadata:
+                    labels:
+                      app: object-detector
+                  spec:
+                    containers:
+                    - name: detector
+                      image: quay.io/codait/max-object-detector
+                      ports:
+                      - containerPort: 5000
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: max-object-detector-svc
+              spec:
+                type: LoadBalancer
+                selector:
+                  app: object-detector
+                ports:
+                - port: 8080
+                  targetPort: 5000
+              K8S_EOF
 
-              # 3. Creiamo la configurazione per Prometheus
-              mkdir -p /etc/prometheus
-              cat << 'PROM_EOF' > /etc/prometheus/prometheus.yml
-              global:
-                scrape_interval: 5s
-              scrape_configs:
-                - job_name: 'cadvisor'
-                  static_configs:
-                    - targets: ['cadvisor:8080']
-              PROM_EOF
-
-              # 4. Avviamo Prometheus per raccogliere i dati
-              docker run -d --name=prometheus --net=monitoring-net -p 9090:9090 \
-                -v /etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml \
-                --restart always prom/prometheus:latest
-
-              # 5. Avviamo il nostro modello di Machine Learning
-              docker run -d --name=max-object-detector -p 8080:5000 \
-                --restart always quay.io/codait/max-object-detector
+              # 4. Diciamo a Kubernetes di applicare il file e avviare l'infrastruttura
+              k3s kubectl apply -f /tmp/max-object-detector.yaml
               EOF
 }
 
